@@ -21,6 +21,7 @@ def format_schedule(row):
         "funcion": row["funcion"],
         "target": row["target"],
         "activo": row["activo"],
+        "ultima_ejecucion": row["ultima_ejecucion"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }

@@ -7,7 +7,7 @@ from app.repositories.schedules_repository import (
 )
 
 
-VALID_FUNCTIONS = ["OPEN", "CLOSE", "STATUS"]
+VALID_FUNCTIONS = ["OPEN", "CLOSE", "STATUS","ENCENDER_LED","APAGAR_LED"]
 
 
 def validate_schedule_data(schedule):

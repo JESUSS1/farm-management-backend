@@ -2,7 +2,7 @@ def get_schedules(conn):
     with conn.cursor() as cursor:
         cursor.execute(
             """
-            SELECT id, nombre, hora, funcion, target, activo,  created_at, updated_at
+            SELECT id, nombre, hora, funcion, target, activo, ultima_ejecucion, created_at, updated_at
             FROM horario_funciones
             ORDER BY hora ASC;
             """
@@ -38,17 +38,25 @@ def update_schedule(conn, schedule_id, schedule):
                 funcion = COALESCE(%s, funcion),
                 target = COALESCE(%s, target),
                 activo = COALESCE(%s, activo),
-                updated_at = NOW()
+                updated_at = NOW(),
+                ultima_ejecucion = NULL
             WHERE id = %s
             RETURNING id;
             """,
-            (schedule.nombre, schedule.hora, schedule.funcion, schedule.target, schedule.activo, schedule_id),
+            (
+                schedule.nombre,
+                schedule.hora,
+                schedule.funcion,
+                schedule.target,
+                schedule.activo,
+                schedule_id,
+            ),
         )
-        row = cursor.fetchone(),
-    
+
+        row = cursor.fetchone()
 
     conn.commit()
-    return row[0] if row else None
+    return row["id"] if row else None
 
 
 def delete_schedule(conn, schedule_id):

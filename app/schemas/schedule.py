@@ -11,6 +11,7 @@ class ScheduleResponse(BaseModel):
     funcion: str
     target: str | None
     activo: bool
+    ultima_ejecucion: datetime | None
     created_at: datetime | None
     updated_at: datetime | None
 
