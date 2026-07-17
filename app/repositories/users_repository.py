@@ -31,6 +31,7 @@ def get_users(conn):
 
         return cursor.fetchall()
 
+
 def get_user_by_id(conn, usuario_id):
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute(
@@ -62,7 +63,8 @@ def get_user_by_id(conn, usuario_id):
         )
 
         return cursor.fetchone()
-    
+
+
 def get_user_by_username(conn, username):
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute(
@@ -76,10 +78,225 @@ def get_user_by_username(conn, username):
                 estado
             FROM usuario
             WHERE
-                username = %s
+                LOWER(username) = LOWER(%s)
                 AND eliminado_at IS NULL;
             """,
             (username,),
         )
 
         return cursor.fetchone()
+
+
+def get_user_by_email(conn, email):
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            SELECT
+                usuario_id,
+                username,
+                email
+            FROM usuario
+            WHERE
+                LOWER(email) = LOWER(%s)
+                AND eliminado_at IS NULL;
+            """,
+            (email,),
+        )
+
+        return cursor.fetchone()
+
+
+def role_exists(conn, rol_sistema_id):
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            SELECT EXISTS(
+                SELECT 1
+                FROM rol_sistema
+                WHERE rol_sistema_id = %s
+            ) AS existe;
+            """,
+            (rol_sistema_id,),
+        )
+
+        result = cursor.fetchone()
+
+        return result["existe"]
+
+
+def create_user_record(
+    conn,
+    rol_sistema_id,
+    username,
+    password_hash,
+    email,
+):
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            INSERT INTO usuario (
+                rol_sistema_id,
+                username,
+                password_hash,
+                email
+            )
+            VALUES (%s, %s, %s, %s)
+            RETURNING usuario_id;
+            """,
+            (
+                rol_sistema_id,
+                username,
+                password_hash,
+                email,
+            ),
+        )
+
+        result = cursor.fetchone()
+
+        return result["usuario_id"]
+
+
+def create_person_record(
+    conn,
+    usuario_id,
+    nombres,
+    apellidos,
+    telefono,
+    documento_identidad,
+):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO persona (
+                usuario_id,
+                nombres,
+                apellidos,
+                telefono,
+                documento_identidad
+            )
+            VALUES (%s, %s, %s, %s, %s);
+            """,
+            (
+                usuario_id,
+                nombres,
+                apellidos,
+                telefono,
+                documento_identidad,
+            ),
+        )
+
+
+def update_user_record(conn, usuario_id, data):
+    allowed_fields = {
+        "rol_sistema_id",
+        "username",
+        "email",
+        "estado",
+    }
+
+    fields = {
+        key: value
+        for key, value in data.items()
+        if key in allowed_fields
+    }
+
+    if not fields:
+        return
+
+    assignments = [
+        f"{field} = %s"
+        for field in fields
+    ]
+
+    values = list(fields.values())
+    values.append(usuario_id)
+
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"""
+            UPDATE usuario
+            SET
+                {", ".join(assignments)},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE
+                usuario_id = %s
+                AND eliminado_at IS NULL;
+            """,
+            values,
+        )
+
+
+def update_person_record(conn, usuario_id, data):
+    allowed_fields = {
+        "nombres",
+        "apellidos",
+        "telefono",
+        "documento_identidad",
+    }
+
+    fields = {
+        key: value
+        for key, value in data.items()
+        if key in allowed_fields
+    }
+
+    if not fields:
+        return
+
+    assignments = [
+        f"{field} = %s"
+        for field in fields
+    ]
+
+    values = list(fields.values())
+    values.append(usuario_id)
+
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"""
+            UPDATE persona
+            SET {", ".join(assignments)}
+            WHERE usuario_id = %s;
+            """,
+            values,
+        )
+
+
+def update_user_password(conn, usuario_id, password_hash):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE usuario
+            SET
+                password_hash = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE
+                usuario_id = %s
+                AND eliminado_at IS NULL;
+            """,
+            (
+                password_hash,
+                usuario_id,
+            ),
+        )
+
+        return cursor.rowcount > 0
+
+
+def soft_delete_user(conn, usuario_id):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE usuario
+            SET
+                estado = FALSE,
+                eliminado_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE
+                usuario_id = %s
+                AND eliminado_at IS NULL;
+            """,
+            (usuario_id,),
+        )
+
+        return cursor.rowcount > 0

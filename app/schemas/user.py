@@ -1,6 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    model_validator,
+)
 
 
 class UserCreate(BaseModel):
@@ -76,6 +82,15 @@ class UserUpdate(BaseModel):
     )
 
     estado: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_update_fields(self):
+        if not self.model_fields_set:
+            raise ValueError(
+                "Debe enviar al menos un campo para actualizar"
+            )
+
+        return self
 
 
 class UserPasswordUpdate(BaseModel):
