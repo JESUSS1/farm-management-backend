@@ -1,4 +1,12 @@
 from app.core.security import hash_password
+from app.core.exceptions import (
+    EmailAlreadyExistsException,
+    RoleNotFoundException,
+    UserNotFoundException,
+    UsernameAlreadyExistsException,
+    NullFieldNotAllowedException,
+
+)
 from app.repositories.users_repository import (
     create_person_record,
     create_user_record,
@@ -19,8 +27,10 @@ def list_users(conn):
 
 
 def get_user(conn, usuario_id):
-    return get_user_by_id(conn, usuario_id)
+    user = get_user_by_id(conn, usuario_id)
 
+    if user is None: raise UserNotFoundException()
+    return user
 
 def create_user(conn, user_data):
     username = user_data.username.strip()
@@ -34,13 +44,13 @@ def create_user(conn, user_data):
     apellidos = user_data.apellidos.strip()
 
     if not role_exists(conn, user_data.rol_sistema_id):
-        raise ValueError("El rol del sistema no existe")
+        raise RoleNotFoundException()
 
     if get_user_by_username(conn, username):
-        raise ValueError("El nombre de usuario ya está registrado")
+        raise UsernameAlreadyExistsException()
 
     if email and get_user_by_email(conn, email):
-        raise ValueError("El correo electrónico ya está registrado")
+        raise EmailAlreadyExistsException()
 
     password_hash = hash_password(user_data.password)
 
@@ -75,7 +85,7 @@ def update_user(conn, usuario_id, user_data):
     current_user = get_user_by_id(conn, usuario_id)
 
     if current_user is None:
-        return None
+        raise UserNotFoundException()
 
     data = user_data.model_dump(exclude_unset=True)
 
@@ -89,13 +99,11 @@ def update_user(conn, usuario_id, user_data):
 
     for field in non_nullable_fields:
         if field in data and data[field] is None:
-            raise ValueError(
-                f"El campo '{field}' no puede ser nulo"
-            )
+            raise NullFieldNotAllowedException(field)
 
     if "rol_sistema_id" in data:
         if not role_exists(conn, data["rol_sistema_id"]):
-            raise ValueError("El rol del sistema no existe")
+            raise RoleNotFoundException()
 
     if "username" in data:
         data["username"] = data["username"].strip()
@@ -109,9 +117,7 @@ def update_user(conn, usuario_id, user_data):
             existing_user
             and existing_user["usuario_id"] != usuario_id
         ):
-            raise ValueError(
-                "El nombre de usuario ya está registrado"
-            )
+            raise UsernameAlreadyExistsException()
 
     if "email" in data:
         data["email"] = (
@@ -130,9 +136,7 @@ def update_user(conn, usuario_id, user_data):
                 existing_email
                 and existing_email["usuario_id"] != usuario_id
             ):
-                raise ValueError(
-                    "El correo electrónico ya está registrado"
-                )
+                raise EmailAlreadyExistsException()
 
     if "nombres" in data:
         data["nombres"] = data["nombres"].strip()
@@ -170,7 +174,7 @@ def change_user_password(
     user = get_user_by_id(conn, usuario_id)
 
     if user is None:
-        return False
+        raise UserNotFoundException()
 
     password_hash = hash_password(password)
 
@@ -194,7 +198,7 @@ def delete_user(conn, usuario_id):
     user = get_user_by_id(conn, usuario_id)
 
     if user is None:
-        return False
+        raise UserNotFoundException()
 
     try:
         deleted = soft_delete_user(
