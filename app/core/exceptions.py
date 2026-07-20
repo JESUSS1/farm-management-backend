@@ -1,5 +1,6 @@
 from fastapi import status
 
+
 class AppException(Exception):
     """Excepción base para errores controlados de la aplicación."""
 
@@ -61,9 +62,8 @@ class NullFieldNotAllowedException(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
 
     def __init__(self, field_name: str):
-        super().__init__(
-            detail=f"El campo '{field_name}' no puede ser nulo"
-        )
+        super().__init__(detail=f"El campo '{field_name}' no puede ser nulo")
+
 
 class InvalidCredentialsException(AppException):
     """Se lanza cuando el usuario o la contraseña son incorrectos."""
@@ -96,3 +96,19 @@ class ExpiredTokenException(AppException):
 class ForbiddenException(AppException):
     status_code = 403
     detail = "No tienes permisos para realizar esta acción"
+
+
+class PermissionNotFoundException(AppException):
+    def __init__(self):
+        super().__init__(
+            status_code=404,
+            detail="Permiso no encontrado",
+        )
+
+
+class PermissionCodeAlreadyExistsException(AppException):
+    def __init__(self):
+        super().__init__(
+            status_code=409,
+            detail="El código del permiso ya está registrado",
+        )

@@ -5,6 +5,9 @@ from app.core.handlers import register_exception_handlers
 from app.routes import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import CORS_ORIGINS
+from app.routes.permissions import (
+    router as permissions_router,
+)
 
 app = FastAPI(
     title="Farm Management Backend",
@@ -21,6 +24,7 @@ register_exception_handlers(app)
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(health.router)
-app.include_router(readings.router)
-app.include_router(schedules.router)
+# app.include_router(health.router)
+# app.include_router(readings.router)
+# app.include_router(schedules.router)
+app.include_router(permissions_router)
