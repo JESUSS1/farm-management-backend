@@ -1,5 +1,9 @@
 from psycopg2.extras import RealDictCursor
-
+from psycopg2.errors import UniqueViolation
+from app.core.exceptions import (
+    EmailAlreadyExistsException,
+    UsernameAlreadyExistsException,
+)
 
 def get_users(conn):
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -131,30 +135,45 @@ def create_user_record(
     password_hash,
     email,
 ):
-    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute(
-            """
-            INSERT INTO usuario (
-                rol_sistema_id,
-                username,
-                password_hash,
-                email
+    try:
+        with conn.cursor(
+            cursor_factory=RealDictCursor
+        ) as cursor:
+            cursor.execute(
+                """
+                INSERT INTO usuario (
+                    rol_sistema_id,
+                    username,
+                    password_hash,
+                    email
+                )
+                VALUES (%s, %s, %s, %s)
+                RETURNING usuario_id;
+                """,
+                (
+                    rol_sistema_id,
+                    username,
+                    password_hash,
+                    email,
+                ),
             )
-            VALUES (%s, %s, %s, %s)
-            RETURNING usuario_id;
-            """,
-            (
-                rol_sistema_id,
-                username,
-                password_hash,
-                email,
-            ),
-        )
 
-        result = cursor.fetchone()
+            result = cursor.fetchone()
 
-        return result["usuario_id"]
+            return result["usuario_id"]
 
+    except UniqueViolation as exc:
+        conn.rollback()
+
+        constraint_name = exc.diag.constraint_name
+
+        if constraint_name == "usuario_username_key":
+            raise UsernameAlreadyExistsException() from exc
+
+        if constraint_name == "usuario_email_key":
+            raise EmailAlreadyExistsException() from exc
+
+        raise
 
 def create_person_record(
     conn,

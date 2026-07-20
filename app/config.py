@@ -27,3 +27,8 @@ if not JWT_SECRET_KEY:
     raise RuntimeError(
         "La variable de entorno JWT_SECRET_KEY no está configurada"
     )
+
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173",
+).split(",")

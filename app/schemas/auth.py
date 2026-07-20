@@ -21,4 +21,5 @@ class AuthenticatedUserResponse(BaseModel):
     usuario_id: int
     username: str
     rol_sistema_id: int
+    rol_nombre: str
     estado: bool
