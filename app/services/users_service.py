@@ -1,6 +1,7 @@
 from app.core.security import hash_password
 from app.core.exceptions import (
     EmailAlreadyExistsException,
+    ForbiddenException,
     RoleNotFoundException,
     UserNotFoundException,
     UsernameAlreadyExistsException,
@@ -10,6 +11,7 @@ from app.core.exceptions import (
 from app.repositories.users_repository import (
     create_person_record,
     create_user_record,
+    count_active_superadmins,
     get_user_by_email,
     get_user_by_id,
     get_user_by_username,
@@ -199,6 +201,14 @@ def delete_user(conn, usuario_id):
 
     if user is None:
         raise UserNotFoundException()
+
+    if user["rol_sistema"] == "SUPERADMIN":
+        active_superadmins = count_active_superadmins(conn)
+
+        if active_superadmins <= 1:
+            raise ForbiddenException(
+                detail="No se puede eliminar al último usuario SUPERADMIN"
+            )
 
     try:
         deleted = soft_delete_user(

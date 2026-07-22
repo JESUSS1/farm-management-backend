@@ -1,0 +1,87 @@
+from fastapi import (
+    APIRouter,
+    Depends,
+    Response,
+    status,
+)
+
+from app.core.auth import get_current_user
+from app.core.database import db_connection
+from app.schemas.farm import (
+    FarmCreate,
+    FarmResponse,
+    FarmUpdate,
+)
+from app.services.farms_service import (
+    create_farm,
+    delete_farm,
+    get_farm_by_id,
+    list_farms,
+    update_farm,
+)
+
+router = APIRouter(
+    prefix="/farms",
+    tags=["Farms"],
+    dependencies=[
+        Depends(get_current_user),
+    ],
+)
+
+
+@router.get(
+    "/",
+    response_model=list[FarmResponse],
+)
+def get_farms(
+    conn=Depends(db_connection),
+):
+    return list_farms(conn)
+
+
+@router.get(
+    "/{granja_id}",
+    response_model=FarmResponse,
+)
+def get_farm(
+    granja_id: int,
+    conn=Depends(db_connection),
+):
+    return get_farm_by_id(conn, granja_id)
+
+
+@router.post(
+    "/",
+    response_model=FarmResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_new_farm(
+    farm_data: FarmCreate,
+    conn=Depends(db_connection),
+):
+    return create_farm(conn, farm_data)
+
+
+@router.patch(
+    "/{granja_id}",
+    response_model=FarmResponse,
+)
+def update_existing_farm(
+    granja_id: int,
+    farm_data: FarmUpdate,
+    conn=Depends(db_connection),
+):
+    return update_farm(conn, granja_id, farm_data)
+
+
+@router.delete(
+    "/{granja_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_existing_farm(
+    granja_id: int,
+    conn=Depends(db_connection),
+):
+    delete_farm(conn, granja_id)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
