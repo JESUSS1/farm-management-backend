@@ -128,6 +128,25 @@ def role_exists(conn, rol_sistema_id):
         return result["existe"]
 
 
+def count_active_superadmins(conn):
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM usuario u
+            INNER JOIN rol_sistema rs
+                ON rs.rol_sistema_id = u.rol_sistema_id
+            WHERE rs.nombre = 'SUPERADMIN'
+                AND u.estado = TRUE
+                AND u.eliminado_at IS NULL;
+            """
+        )
+
+        result = cursor.fetchone()
+
+        return result["count"]
+
+
 def create_user_record(
     conn,
     rol_sistema_id,
