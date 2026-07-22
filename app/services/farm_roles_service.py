@@ -12,8 +12,14 @@ from app.repositories.farm_roles_repository import (
 )
 
 
-def list_farm_roles(conn):
-    return get_farm_roles(conn)
+def list_farm_roles(conn, search=None, granja_id=None, limit=50, offset=0):
+    return get_farm_roles(
+        conn,
+        search=search,
+        granja_id=granja_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def get_farm_role_by_id(conn, farm_role_id):

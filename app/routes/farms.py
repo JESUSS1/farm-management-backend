@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Query,
     Response,
     status,
 )
@@ -35,8 +36,16 @@ router = APIRouter(
 )
 def get_farms(
     conn=Depends(db_connection),
+    search: str | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ):
-    return list_farms(conn)
+    return list_farms(
+        conn,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(

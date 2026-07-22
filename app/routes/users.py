@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Query,
     Response,
     status,
 )
@@ -30,12 +31,25 @@ router = APIRouter(
     ],
 )
 
+
 @router.get(
     "/",
     response_model=list[UserResponse],
 )
-def get_users(conn=Depends(db_connection)):
-    return list_users(conn)
+def get_users(
+    conn=Depends(db_connection),
+    search: str | None = None,
+    rol_sistema_id: int | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    return list_users(
+        conn,
+        search=search,
+        rol_sistema_id=rol_sistema_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(

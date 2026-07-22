@@ -23,21 +23,37 @@ def get_farm(conn, granja_id):
         return cursor.fetchone()
 
 
-def get_farms(conn):
+def get_farms(conn, search=None, limit=50, offset=0):
+    query = """
+        SELECT
+            granja_id,
+            nombre,
+            ubicacion,
+            descripcion,
+            estado,
+            created_at,
+            updated_at
+        FROM granja
+        WHERE eliminado_at IS NULL
+    """
+    params = []
+
+    if search:
+        query += """
+            AND (
+                LOWER(nombre) LIKE LOWER(%s)
+                OR LOWER(COALESCE(ubicacion, '')) LIKE LOWER(%s)
+                OR LOWER(COALESCE(descripcion, '')) LIKE LOWER(%s)
+            )
+        """
+        pattern = f"%{search}%"
+        params.extend([pattern] * 3)
+
+    query += " ORDER BY granja_id LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute("""
-            SELECT
-                granja_id,
-                nombre,
-                ubicacion,
-                descripcion,
-                estado,
-                created_at,
-                updated_at
-            FROM granja
-            WHERE eliminado_at IS NULL
-            ORDER BY granja_id;
-            """)
+        cursor.execute(query, params)
 
         return cursor.fetchall()
 

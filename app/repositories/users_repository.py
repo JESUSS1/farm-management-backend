@@ -5,33 +5,53 @@ from app.core.exceptions import (
     UsernameAlreadyExistsException,
 )
 
-def get_users(conn):
+
+def get_users(conn, search=None, rol_sistema_id=None, limit=50, offset=0):
+    query = """
+        SELECT
+            u.usuario_id,
+            u.username,
+            u.email,
+            u.estado,
+            rs.rol_sistema_id,
+            rs.nombre AS rol_sistema,
+            p.persona_id,
+            p.nombres,
+            p.apellidos,
+            p.telefono,
+            p.documento_identidad,
+            u.created_at,
+            u.updated_at
+        FROM usuario u
+        INNER JOIN rol_sistema rs
+            ON rs.rol_sistema_id = u.rol_sistema_id
+        LEFT JOIN persona p
+            ON p.usuario_id = u.usuario_id
+        WHERE u.eliminado_at IS NULL
+    """
+    params = []
+
+    if search:
+        query += """
+            AND (
+                LOWER(u.username) LIKE LOWER(%s)
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(%s)
+                OR LOWER(COALESCE(p.nombres, '')) LIKE LOWER(%s)
+                OR LOWER(COALESCE(p.apellidos, '')) LIKE LOWER(%s)
+            )
+        """
+        pattern = f"%{search}%"
+        params.extend([pattern] * 4)
+
+    if rol_sistema_id is not None:
+        query += " AND u.rol_sistema_id = %s"
+        params.append(rol_sistema_id)
+
+    query += " ORDER BY u.usuario_id LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute(
-            """
-            SELECT
-                u.usuario_id,
-                u.username,
-                u.email,
-                u.estado,
-                rs.rol_sistema_id,
-                rs.nombre AS rol_sistema,
-                p.persona_id,
-                p.nombres,
-                p.apellidos,
-                p.telefono,
-                p.documento_identidad,
-                u.created_at,
-                u.updated_at
-            FROM usuario u
-            INNER JOIN rol_sistema rs
-                ON rs.rol_sistema_id = u.rol_sistema_id
-            LEFT JOIN persona p
-                ON p.usuario_id = u.usuario_id
-            WHERE u.eliminado_at IS NULL
-            ORDER BY u.usuario_id;
-            """
-        )
+        cursor.execute(query, params)
 
         return cursor.fetchall()
 
@@ -130,8 +150,7 @@ def role_exists(conn, rol_sistema_id):
 
 def count_active_superadmins(conn):
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT COUNT(*) AS count
             FROM usuario u
             INNER JOIN rol_sistema rs
@@ -139,8 +158,7 @@ def count_active_superadmins(conn):
             WHERE rs.nombre = 'SUPERADMIN'
                 AND u.estado = TRUE
                 AND u.eliminado_at IS NULL;
-            """
-        )
+            """)
 
         result = cursor.fetchone()
 
@@ -155,9 +173,7 @@ def create_user_record(
     email,
 ):
     try:
-        with conn.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 """
                 INSERT INTO usuario (
@@ -193,6 +209,7 @@ def create_user_record(
             raise EmailAlreadyExistsException() from exc
 
         raise
+
 
 def create_person_record(
     conn,
@@ -232,19 +249,12 @@ def update_user_record(conn, usuario_id, data):
         "estado",
     }
 
-    fields = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields
-    }
+    fields = {key: value for key, value in data.items() if key in allowed_fields}
 
     if not fields:
         return
 
-    assignments = [
-        f"{field} = %s"
-        for field in fields
-    ]
+    assignments = [f"{field} = %s" for field in fields]
 
     values = list(fields.values())
     values.append(usuario_id)
@@ -272,19 +282,12 @@ def update_person_record(conn, usuario_id, data):
         "documento_identidad",
     }
 
-    fields = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields
-    }
+    fields = {key: value for key, value in data.items() if key in allowed_fields}
 
     if not fields:
         return
 
-    assignments = [
-        f"{field} = %s"
-        for field in fields
-    ]
+    assignments = [f"{field} = %s" for field in fields]
 
     values = list(fields.values())
     values.append(usuario_id)

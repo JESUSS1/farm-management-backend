@@ -29,21 +29,40 @@ def get_farm_role(conn, farm_role_id):
         return cursor.fetchone()
 
 
-def get_farm_roles(conn):
+def get_farm_roles(conn, search=None, granja_id=None, limit=50, offset=0):
+    query = """
+        SELECT
+            rol_granja_id,
+            granja_id,
+            nombre,
+            descripcion,
+            estado,
+            created_at,
+            updated_at
+        FROM rol_granja
+        WHERE eliminado_at IS NULL
+    """
+    params = []
+
+    if granja_id is not None:
+        query += " AND granja_id = %s"
+        params.append(granja_id)
+
+    if search:
+        query += """
+            AND (
+                LOWER(nombre) LIKE LOWER(%s)
+                OR LOWER(COALESCE(descripcion, '')) LIKE LOWER(%s)
+            )
+        """
+        pattern = f"%{search}%"
+        params.extend([pattern] * 2)
+
+    query += " ORDER BY rol_granja_id LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute("""
-            SELECT
-                rol_granja_id,
-                granja_id,
-                nombre,
-                descripcion,
-                estado,
-                created_at,
-                updated_at
-            FROM rol_granja
-            WHERE eliminado_at IS NULL
-            ORDER BY rol_granja_id;
-            """)
+        cursor.execute(query, params)
 
         return cursor.fetchall()
 

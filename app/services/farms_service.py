@@ -8,8 +8,13 @@ from app.repositories.farms_repository import (
 )
 
 
-def list_farms(conn):
-    return get_farms(conn)
+def list_farms(conn, search=None, limit=50, offset=0):
+    return get_farms(
+        conn,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def get_farm_by_id(conn, granja_id):

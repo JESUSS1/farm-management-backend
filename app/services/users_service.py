@@ -6,7 +6,6 @@ from app.core.exceptions import (
     UserNotFoundException,
     UsernameAlreadyExistsException,
     NullFieldNotAllowedException,
-
 )
 from app.repositories.users_repository import (
     create_person_record,
@@ -24,23 +23,27 @@ from app.repositories.users_repository import (
 )
 
 
-def list_users(conn):
-    return get_users(conn)
+def list_users(conn, search=None, rol_sistema_id=None, limit=50, offset=0):
+    return get_users(
+        conn,
+        search=search,
+        rol_sistema_id=rol_sistema_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def get_user(conn, usuario_id):
     user = get_user_by_id(conn, usuario_id)
 
-    if user is None: raise UserNotFoundException()
+    if user is None:
+        raise UserNotFoundException()
     return user
+
 
 def create_user(conn, user_data):
     username = user_data.username.strip()
-    email = (
-        str(user_data.email).strip().lower()
-        if user_data.email
-        else None
-    )
+    email = str(user_data.email).strip().lower() if user_data.email else None
 
     nombres = user_data.nombres.strip()
     apellidos = user_data.apellidos.strip()
@@ -115,18 +118,11 @@ def update_user(conn, usuario_id, user_data):
             data["username"],
         )
 
-        if (
-            existing_user
-            and existing_user["usuario_id"] != usuario_id
-        ):
+        if existing_user and existing_user["usuario_id"] != usuario_id:
             raise UsernameAlreadyExistsException()
 
     if "email" in data:
-        data["email"] = (
-            str(data["email"]).strip().lower()
-            if data["email"]
-            else None
-        )
+        data["email"] = str(data["email"]).strip().lower() if data["email"] else None
 
         if data["email"]:
             existing_email = get_user_by_email(
@@ -134,10 +130,7 @@ def update_user(conn, usuario_id, user_data):
                 data["email"],
             )
 
-            if (
-                existing_email
-                and existing_email["usuario_id"] != usuario_id
-            ):
+            if existing_email and existing_email["usuario_id"] != usuario_id:
                 raise EmailAlreadyExistsException()
 
     if "nombres" in data:

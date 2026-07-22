@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Query,
     Response,
     status,
 )
@@ -35,8 +36,18 @@ router = APIRouter(
 )
 def get_farm_roles(
     conn=Depends(db_connection),
+    search: str | None = None,
+    granja_id: int | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ):
-    return list_farm_roles(conn)
+    return list_farm_roles(
+        conn,
+        search=search,
+        granja_id=granja_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(
