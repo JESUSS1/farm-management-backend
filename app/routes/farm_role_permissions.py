@@ -5,7 +5,7 @@ from fastapi import (
     status,
 )
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_permissions
 from app.core.database import db_connection
 from app.schemas.farm_role_permission import (
     FarmRolePermissionCreate,
@@ -34,6 +34,7 @@ router = APIRouter(
     response_model=list[FarmRolePermissionResponse],
 )
 def get_farm_role_permissions(
+    current_user: dict = Depends(require_permissions("PERMISSIONS_VIEW")),
     conn=Depends(db_connection),
 ):
     return list_farm_role_permissions(conn)
@@ -45,6 +46,7 @@ def get_farm_role_permissions(
 )
 def get_farm_role_permission(
     farm_role_permission_id: int,
+    current_user: dict = Depends(require_permissions("PERMISSIONS_VIEW")),
     conn=Depends(db_connection),
 ):
     return get_farm_role_permission_by_id(conn, farm_role_permission_id)
@@ -57,6 +59,7 @@ def get_farm_role_permission(
 )
 def create_new_farm_role_permission(
     permission_data: FarmRolePermissionCreate,
+    current_user: dict = Depends(require_permissions("PERMISSIONS_CREATE")),
     conn=Depends(db_connection),
 ):
     return create_farm_role_permission(conn, permission_data)
@@ -69,6 +72,7 @@ def create_new_farm_role_permission(
 def update_existing_farm_role_permission(
     farm_role_permission_id: int,
     permission_data: FarmRolePermissionUpdate,
+    current_user: dict = Depends(require_permissions("PERMISSIONS_UPDATE")),
     conn=Depends(db_connection),
 ):
     return update_farm_role_permission(
@@ -84,6 +88,7 @@ def update_existing_farm_role_permission(
 )
 def delete_existing_farm_role_permission(
     farm_role_permission_id: int,
+    current_user: dict = Depends(require_permissions("PERMISSIONS_DELETE")),
     conn=Depends(db_connection),
 ):
     delete_farm_role_permission(conn, farm_role_permission_id)

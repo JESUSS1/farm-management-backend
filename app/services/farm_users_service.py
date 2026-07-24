@@ -1,13 +1,14 @@
 from app.core.exceptions import (
     FarmNotFoundException,
     FarmRoleNotFoundException,
+    FarmUserAlreadyExistsException,
     UserNotFoundException,
-    FarmRolePermissionAlreadyExistsException,
 )
 from app.repositories.farm_users_repository import (
     create_farm_user_record,
     farm_exists,
     farm_role_exists,
+    get_farm_user_by_user_and_farm,
     get_farm_user,
     get_farm_users,
     soft_delete_farm_user,
@@ -38,6 +39,9 @@ def create_farm_user(conn, data):
 
     if not farm_role_exists(conn, data.rol_granja_id):
         raise FarmRoleNotFoundException()
+
+    if get_farm_user_by_user_and_farm(conn, data.usuario_id, data.granja_id):
+        raise FarmUserAlreadyExistsException()
 
     usuario_granja_id = create_farm_user_record(
         conn,

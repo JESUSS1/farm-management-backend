@@ -1,10 +1,11 @@
+from psycopg2.errors import UniqueViolation
 from psycopg2.extras import RealDictCursor
 
 from app.core.exceptions import (
     FarmRoleNotFoundException,
     FarmNotFoundException,
     UserNotFoundException,
-    FarmRolePermissionAlreadyExistsException,
+    FarmUserAlreadyExistsException,
 )
 
 
@@ -88,6 +89,33 @@ def get_farm_user(conn, usuario_granja_id):
         return cursor.fetchone()
 
 
+def get_farm_user_by_user_and_farm(conn, usuario_id, granja_id):
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            SELECT
+                usuario_granja_id,
+                usuario_id,
+                granja_id,
+                rol_granja_id,
+                es_propietario,
+                estado,
+                created_at,
+                updated_at
+            FROM usuario_granja
+            WHERE usuario_id = %s
+                AND granja_id = %s
+                AND eliminado_at IS NULL;
+            """,
+            (
+                usuario_id,
+                granja_id,
+            ),
+        )
+
+        return cursor.fetchone()
+
+
 def get_farm_users(conn):
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute("""
@@ -134,8 +162,12 @@ def create_farm_user_record(conn, usuario_id, granja_id, rol_granja_id, es_propi
 
             return result["usuario_granja_id"]
 
-    except Exception as exc:
+    except UniqueViolation as exc:
         conn.rollback()
+
+        if exc.diag.constraint_name == "uq_usuario_granja_vigente":
+            raise FarmUserAlreadyExistsException() from exc
+
         raise
 
 

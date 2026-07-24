@@ -113,7 +113,7 @@ def create_farm_role_record(conn, granja_id, nombre, descripcion):
     except UniqueViolation as exc:
         conn.rollback()
 
-        raise RolGranjaAlreadyExistsException() from exc
+        raise FarmRoleAlreadyExistsException() from exc
 
 
 def update_farm_role_record(conn, farm_role_id, data):

@@ -45,6 +45,47 @@ def get_farm_role_permissions(conn):
         return cursor.fetchall()
 
 
+def get_permission_ids_by_farm_role(conn, farm_role_id: int) -> list[int]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            SELECT
+                permiso_id
+            FROM rol_granja_permiso
+            WHERE rol_granja_id = %s
+                AND eliminado_at IS NULL
+                AND estado = TRUE
+            ORDER BY permiso_id;
+            """,
+            (farm_role_id,),
+        )
+
+        return [row["permiso_id"] for row in cursor.fetchall()]
+
+
+def create_farm_role_permissions_for_role(
+    conn, farm_role_id: int, permission_ids: list[int]
+):
+    if not permission_ids:
+        return
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        for permission_id in permission_ids:
+            cursor.execute(
+                """
+                INSERT INTO rol_granja_permiso (
+                    rol_granja_id,
+                    permiso_id
+                )
+                VALUES (%s, %s);
+                """,
+                (
+                    farm_role_id,
+                    permission_id,
+                ),
+            )
+
+
 def create_farm_role_permission_record(conn, farm_role_id, permission_id):
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:

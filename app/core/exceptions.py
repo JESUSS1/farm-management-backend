@@ -77,6 +77,13 @@ class FarmRolePermissionAlreadyExistsException(AppException):
     detail = "El permiso ya está asignado a este rol de granja"
 
 
+class FarmUserAlreadyExistsException(AppException):
+    """Se lanza cuando el usuario ya está asignado a la granja."""
+
+    status_code = status.HTTP_409_CONFLICT
+    detail = "El usuario ya está asignado a esta granja"
+
+
 class FarmNotFoundException(AppException):
     """Se lanza cuando la granja no existe."""
 

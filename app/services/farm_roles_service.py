@@ -10,6 +10,10 @@ from app.repositories.farm_roles_repository import (
     soft_delete_farm_role,
     update_farm_role_record,
 )
+from app.repositories.farm_role_permissions_repository import (
+    create_farm_role_permissions_for_role,
+    get_permission_ids_by_farm_role,
+)
 
 
 def list_farm_roles(conn, search=None, granja_id=None, limit=50, offset=0):
@@ -83,3 +87,51 @@ def delete_farm_role(conn, farm_role_id):
     conn.commit()
 
     return farm_role_id
+
+
+def clone_farm_role(conn, source_farm_role_id, clone_data):
+    source_farm_role = get_farm_role(conn, source_farm_role_id)
+
+    if source_farm_role is None:
+        raise FarmRoleNotFoundException()
+
+    if not farm_exists(conn, clone_data.granja_id):
+        raise FarmNotFoundException()
+
+    clone_name = (
+        clone_data.nombre.strip()
+        if clone_data.nombre is not None
+        else source_farm_role["nombre"]
+    )
+
+    clone_description = (
+        clone_data.descripcion
+        if "descripcion" in clone_data.model_fields_set
+        else source_farm_role["descripcion"]
+    )
+
+    permission_ids = get_permission_ids_by_farm_role(
+        conn,
+        source_farm_role_id,
+    )
+
+    try:
+        cloned_farm_role_id = create_farm_role_record(
+            conn,
+            clone_data.granja_id,
+            clone_name,
+            clone_description,
+        )
+
+        create_farm_role_permissions_for_role(
+            conn,
+            cloned_farm_role_id,
+            permission_ids,
+        )
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+
+    return get_farm_role(conn, cloned_farm_role_id)

@@ -5,7 +5,7 @@ from fastapi import (
     status,
 )
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_permissions
 from app.core.database import db_connection
 from app.schemas.farm_user import (
     FarmUserCreate,
@@ -34,6 +34,7 @@ router = APIRouter(
     response_model=list[FarmUserResponse],
 )
 def get_farm_users(
+    current_user: dict = Depends(require_permissions("FARM_USERS_VIEW")),
     conn=Depends(db_connection),
 ):
     return list_farm_users(conn)
@@ -45,6 +46,7 @@ def get_farm_users(
 )
 def get_farm_user(
     usuario_granja_id: int,
+    current_user: dict = Depends(require_permissions("FARM_USERS_VIEW")),
     conn=Depends(db_connection),
 ):
     return get_farm_user_by_id(conn, usuario_granja_id)
@@ -57,6 +59,7 @@ def get_farm_user(
 )
 def create_new_farm_user(
     farm_user_data: FarmUserCreate,
+    current_user: dict = Depends(require_permissions("FARM_USERS_ASSIGN")),
     conn=Depends(db_connection),
 ):
     return create_farm_user(conn, farm_user_data)
@@ -69,6 +72,7 @@ def create_new_farm_user(
 def update_existing_farm_user(
     usuario_granja_id: int,
     farm_user_data: FarmUserUpdate,
+    current_user: dict = Depends(require_permissions("FARM_USERS_UPDATE")),
     conn=Depends(db_connection),
 ):
     return update_farm_user(conn, usuario_granja_id, farm_user_data)
@@ -80,6 +84,7 @@ def update_existing_farm_user(
 )
 def delete_existing_farm_user(
     usuario_granja_id: int,
+    current_user: dict = Depends(require_permissions("FARM_USERS_REMOVE")),
     conn=Depends(db_connection),
 ):
     delete_farm_user(conn, usuario_granja_id)

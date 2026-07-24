@@ -9,6 +9,12 @@ class FarmRoleCreate(BaseModel):
     descripcion: str | None = None
 
 
+class FarmRoleCloneRequest(BaseModel):
+    granja_id: int = Field(gt=0)
+    nombre: str | None = Field(default=None, min_length=1, max_length=80)
+    descripcion: str | None = None
+
+
 class FarmRoleUpdate(BaseModel):
     granja_id: int | None = Field(default=None, gt=0)
     nombre: str | None = Field(default=None, min_length=1, max_length=80)
